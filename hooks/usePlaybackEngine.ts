@@ -7,6 +7,7 @@ import {
   getNextBatch,
   calculateMetrics,
   TelemetryPoint,
+  TelemetryPacket,
   TelemetryBuffer,
 } from '@/app/utils/dataEngine';
 
@@ -19,12 +20,14 @@ export interface PlaybackState {
   error: string | null;
   currentMode: string;
   currentSystemStatus: string;
+  lastPacketId: number;
+  lastPacketLatency: number;
 }
 
 export function usePlaybackEngine() {
   const [state, setState] = useState<PlaybackState>({
     buffer: {
-      points: [],
+      packets: [],
       currentIndex: 0,
       totalPoints: 0,
       isPlaying: true, // Always Live by default
@@ -39,11 +42,14 @@ export function usePlaybackEngine() {
     error: null,
     currentMode: 'IDLE',
     currentSystemStatus: 'IDLE',
+    lastPacketId: 0,
+    lastPacketLatency: 0,
   });
 
   const allDataRef = useRef<TelemetryPoint[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastSignalTimeRef = useRef<number>(Date.now());
+  const packetIdCounterRef = useRef<number>(0);
 
   /**
    * Load Excel file and initialize playback
@@ -103,7 +109,7 @@ export function usePlaybackEngine() {
       ...prev,
       buffer: {
         ...prev.buffer,
-        points: [],
+        packets: [],
         currentIndex: 0,
         totalPoints: 0,
         packetCount: 0,
@@ -128,7 +134,7 @@ export function usePlaybackEngine() {
     // Update interval
     intervalRef.current = setInterval(() => {
       setState((prev) => {
-        const batchSize = 1; // Stream 1 point every 5 seconds as requested
+        const batchSize = 1;
         const { batch, nextIndex } = getNextBatch(
           allDataRef.current,
           prev.buffer.currentIndex,
@@ -138,15 +144,25 @@ export function usePlaybackEngine() {
 
         if (batch.length === 0) return prev;
 
-        // Update buffer: append new points and keep last 100 for sliding window
-        const newPoints = [...prev.buffer.points, ...batch];
-        const trimmedPoints = newPoints.length > 100 ? newPoints.slice(-100) : newPoints;
+        // Wrap telemetry points into packets
+        const newPackets: TelemetryPacket[] = batch.map((point) => {
+          packetIdCounterRef.current += 1;
+          return {
+            id: packetIdCounterRef.current,
+            timestamp: Date.now(),
+            payload: point,
+          };
+        });
+
+        // Update buffer: append new packets and keep last 100 for sliding window
+        const updatedPackets = [...prev.buffer.packets, ...newPackets];
+        const trimmedPackets = updatedPackets.length > 100 ? updatedPackets.slice(-100) : updatedPackets;
 
         const newBuffer: TelemetryBuffer = {
           ...prev.buffer,
-          points: trimmedPoints,
+          packets: trimmedPackets,
           currentIndex: nextIndex,
-          packetCount: prev.buffer.packetCount + batch.length,
+          packetCount: prev.buffer.packetCount + newPackets.length,
           lastUpdateTime: Date.now(),
         };
 
@@ -159,12 +175,14 @@ export function usePlaybackEngine() {
           ...prev,
           buffer: newBuffer,
           isLowBattery: metrics.isLowBattery,
-          dataRate: 1 / 5, // 1 point every 5 seconds = 0.2 rows/sec
+          dataRate: metrics.dataRate,
           currentMode: metrics.currentMode,
           currentSystemStatus: metrics.currentSystemStatus,
+          lastPacketId: metrics.lastPacketId,
+          lastPacketLatency: metrics.lastPacketLatency,
         };
       });
-    }, 5000 / state.buffer.speed);
+    }, 500 / state.buffer.speed);
 
     return () => {
       if (intervalRef.current) {

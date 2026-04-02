@@ -7,12 +7,14 @@ interface TopBarProps {
   isLive: boolean;
   lastUpdateTime: number;
   packetCount: number;
+  lastPacketId: number;
 }
 
 export function TopBar({
   isLive,
   lastUpdateTime,
   packetCount,
+  lastPacketId,
 }: TopBarProps) {
   const formatTime = (ms: number) => {
     const now = Date.now();
@@ -41,7 +43,7 @@ export function TopBar({
                 ASCEND <span className="text-cyan-500">Base Station</span>
               </h1>
               <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-white/5 border border-white/10 text-slate-500 tracking-widest uppercase">
-                v2.1.0-LIVE
+                v2.2.1-LIVE
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">Aerospace Telemetry Orchestrator</p>
@@ -80,9 +82,14 @@ export function TopBar({
             <div className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em]">Data Stream</div>
             <div className="flex items-center gap-2">
               <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]' : 'bg-slate-700'}`} />
-              <span className="text-xs font-mono font-bold text-cyan-500 tracking-widest">
-                {packetCount.toLocaleString()} <span className="text-slate-600 font-normal ml-1">PKTS</span>
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xs font-mono font-bold text-cyan-500 tracking-widest">
+                  {packetCount.toLocaleString()} <span className="text-slate-600 font-normal ml-1">PKTS</span>
+                </span>
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter">
+                  ID: {lastPacketId.toString().padStart(6, '0')}
+                </span>
+              </div>
             </div>
           </div>
         </div>

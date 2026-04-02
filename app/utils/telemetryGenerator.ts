@@ -90,7 +90,7 @@ export function syncWithLastPoint(point: TelemetryPoint) {
  * Called every 5 seconds, produces smooth, realistic drone behavior
  */
 export function generateTelemetry(): TelemetryPoint {
-  generatorState.timestamp += 5000; // 5 second intervals
+  generatorState.timestamp = Date.now();
 
   // --- MODE TRANSITION LOGIC ---
   // Cycle naturally: IDLE → SEARCHING → ALIGNING → DESCENDING → LANDING → IDLE

@@ -10,6 +10,8 @@ interface DataStatsPanelProps {
   lastTimestamp: number;
   totalPoints: number;
   data: TelemetryPoint[];
+  lastPacketId: number;
+  lastPacketLatency: number;
 }
 
 export function DataStatsPanel({
@@ -18,6 +20,8 @@ export function DataStatsPanel({
   lastTimestamp,
   totalPoints,
   data,
+  lastPacketId,
+  lastPacketLatency,
 }: DataStatsPanelProps) {
   const handleExportCSV = () => {
     if (data.length === 0) return;
@@ -110,10 +114,24 @@ export function DataStatsPanel({
       </div>
 
       <div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/50 p-4 shadow-lg group hover:border-amber-500/30 transition-all duration-300">
-        <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2">
-          Last Sync
+        <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2 flex justify-between">
+          <span>Packet Health</span>
+          <span className="text-amber-500 font-bold">{lastPacketLatency}ms</span>
         </div>
-        <div className="text-xl font-mono font-bold text-amber-500 group-hover:text-amber-400 transition-colors uppercase">
+        <div className="flex items-baseline gap-2">
+          <div className="text-2xl font-mono font-bold text-white group-hover:text-amber-400 transition-colors">
+            {dataRate.toFixed(2)}
+          </div>
+          <div className="text-[10px] text-slate-600 font-mono uppercase">P/s</div>
+        </div>
+        <div className="text-[8px] text-slate-600 font-mono uppercase mt-1">Last ID: {lastPacketId}</div>
+      </div>
+
+      <div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/50 p-4 shadow-lg group hover:border-cyan-500/30 transition-all duration-300">
+        <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2 flex justify-between">
+          <span>Last Sync</span>
+        </div>
+        <div className="text-xl font-mono font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors uppercase">
           {formatTimestamp(lastTimestamp)}
         </div>
       </div>

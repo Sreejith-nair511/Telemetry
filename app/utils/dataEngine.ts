@@ -16,8 +16,14 @@ export interface TelemetryPoint {
   systemStatus: string;
 }
 
+export interface TelemetryPacket {
+  id: number;
+  timestamp: number; // absolute UNIX timestamp
+  payload: TelemetryPoint;
+}
+
 export interface TelemetryBuffer {
-  points: TelemetryPoint[];
+  packets: TelemetryPacket[];
   currentIndex: number;
   totalPoints: number;
   isPlaying: boolean;
@@ -104,7 +110,7 @@ export function initializePlaybackEngine(
   data: TelemetryPoint[]
 ): TelemetryBuffer {
   return {
-    points: data.slice(0, Math.min(100, data.length)), // Start with first 100 points
+    packets: [], // Initialize with empty packets, will be filled by playback loop
     currentIndex: 0,
     totalPoints: data.length,
     isPlaying: false,
@@ -165,8 +171,8 @@ export function getNextBatch(
  * Calculate system metrics from telemetry buffer
  */
 export function calculateMetrics(buffer: TelemetryBuffer) {
-  const points = buffer.points;
-  if (points.length === 0) {
+  const packets = buffer.packets;
+  if (packets.length === 0) {
     return {
       isLowBattery: false,
       isSignalLost: false,
@@ -174,20 +180,28 @@ export function calculateMetrics(buffer: TelemetryBuffer) {
       averageVelocity: 0,
       currentMode: 'IDLE',
       currentSystemStatus: 'IDLE',
+      lastPacketId: 0,
+      lastPacketLatency: 0,
     };
   }
 
-  const lastPoint = points[points.length - 1];
+  const lastPacket = packets[packets.length - 1];
+  const lastPoint = lastPacket.payload;
   const velocity = Math.sqrt(
     lastPoint.vx ** 2 + lastPoint.vy ** 2 + lastPoint.vz ** 2
   );
 
+  const now = Date.now();
+  const latency = now - lastPacket.timestamp;
+
   return {
     isLowBattery: lastPoint.battery < 20,
-    isSignalLost: false, // Set by playback hook based on timing
-    dataRate: buffer.packetCount > 0 ? (points.length / (Date.now() - buffer.lastUpdateTime)) * 1000 : 0,
+    isSignalLost: false,
+    dataRate: 2 * buffer.speed, // Normalized to 2Hz * speed
     averageVelocity: velocity,
     currentMode: lastPoint.mode,
     currentSystemStatus: lastPoint.systemStatus,
+    lastPacketId: lastPacket.id,
+    lastPacketLatency: latency,
   };
 }
