@@ -16,6 +16,7 @@ export default function Page() {
     <div className="min-h-screen bg-background">
       <TopBar
         isLive={state.buffer.isPlaying}
+        isSocketConnected={state.isSocketConnected}
         lastUpdateTime={state.buffer.lastUpdateTime}
         packetCount={state.buffer.packetCount}
         lastPacketId={state.lastPacketId}

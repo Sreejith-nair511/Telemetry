@@ -15,6 +15,7 @@ export interface PlaybackState {
   buffer: TelemetryBuffer;
   isLowBattery: boolean;
   isSignalLost: boolean;
+  isSocketConnected: boolean;
   dataRate: number;
   isLoading: boolean;
   error: string | null;
@@ -37,6 +38,7 @@ export function usePlaybackEngine() {
     },
     isLowBattery: false,
     isSignalLost: false,
+    isSocketConnected: false,
     dataRate: 0,
     isLoading: false,
     error: null,
@@ -48,6 +50,7 @@ export function usePlaybackEngine() {
 
   const allDataRef = useRef<TelemetryPoint[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const lastSignalTimeRef = useRef<number>(Date.now());
   const packetIdCounterRef = useRef<number>(0);
 
@@ -120,10 +123,86 @@ export function usePlaybackEngine() {
   }, []);
 
   /**
-   * Playback interval effect
+   * WebSocket Connection Logic
    */
   useEffect(() => {
-    if (!state.buffer.isPlaying) {
+    const connectSocket = () => {
+      // Connect to the standalone relay server
+      const ws = new WebSocket('ws://localhost:8080');
+      socketRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('Connected to Telemetry Relay');
+        setState(prev => ({ ...prev, isSocketConnected: true }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const point: TelemetryPoint = JSON.parse(event.data);
+          
+          setState((prev) => {
+            packetIdCounterRef.current += 1;
+            const newPacket: TelemetryPacket = {
+              id: packetIdCounterRef.current,
+              timestamp: Date.now(),
+              payload: point,
+            };
+
+            const updatedPackets = [...prev.buffer.packets, newPacket];
+            const trimmedPackets = updatedPackets.length > 200 ? updatedPackets.slice(-200) : updatedPackets;
+
+            const newBuffer: TelemetryBuffer = {
+              ...prev.buffer,
+              packets: trimmedPackets,
+              packetCount: prev.buffer.packetCount + 1,
+              lastUpdateTime: Date.now(),
+            };
+
+            lastSignalTimeRef.current = Date.now();
+            const metrics = calculateMetrics(newBuffer);
+
+            return {
+              ...prev,
+              buffer: newBuffer,
+              isLowBattery: metrics.isLowBattery,
+              dataRate: metrics.dataRate,
+              currentMode: metrics.currentMode,
+              currentSystemStatus: metrics.currentSystemStatus,
+              lastPacketId: metrics.lastPacketId,
+              lastPacketLatency: metrics.lastPacketLatency,
+            };
+          });
+        } catch (e) {
+          console.error('Failed to parse WebSocket message:', e);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('Telemetry Relay disconnected');
+        setState(prev => ({ ...prev, isSocketConnected: false }));
+        // Tentative auto-reconnect after 5 seconds
+        setTimeout(connectSocket, 5000);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+      };
+    };
+
+    connectSocket();
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, []);
+
+  /**
+   * Playback interval effect (Only runs if WebSocket is NOT connected)
+   */
+  useEffect(() => {
+    if (!state.buffer.isPlaying || state.isSocketConnected) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -131,7 +210,7 @@ export function usePlaybackEngine() {
       return;
     }
 
-    // Update interval
+    // Update interval for simulation mode
     intervalRef.current = setInterval(() => {
       setState((prev) => {
         const batchSize = 1;
@@ -189,7 +268,7 @@ export function usePlaybackEngine() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [state.buffer.isPlaying, state.buffer.speed]);
+  }, [state.buffer.isPlaying, state.buffer.speed, state.isSocketConnected]);
 
   // Check for signal loss (>10 seconds without data update)
   useEffect(() => {

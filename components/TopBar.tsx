@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Satellite } from 'lucide-react';
+import { Satellite, Globe, Zap } from 'lucide-react';
 
 interface TopBarProps {
   isLive: boolean;
+  isSocketConnected: boolean;
   lastUpdateTime: number;
   packetCount: number;
   lastPacketId: number;
@@ -12,6 +13,7 @@ interface TopBarProps {
 
 export function TopBar({
   isLive,
+  isSocketConnected,
   lastUpdateTime,
   packetCount,
   lastPacketId,
@@ -42,8 +44,12 @@ export function TopBar({
               <h1 className="text-sm font-mono font-black text-white tracking-[0.2em] uppercase">
                 ASCEND <span className="text-cyan-500">Base Station</span>
               </h1>
-              <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-white/5 border border-white/10 text-slate-500 tracking-widest uppercase">
-                v2.2.1-LIVE
+              <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border tracking-widest uppercase ${
+                isSocketConnected 
+                  ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400' 
+                  : 'bg-white/5 border-white/10 text-slate-500'
+              }`}>
+                {isSocketConnected ? 'HARDWARE-LINK' : 'SIMULATION-MODE'}
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">Aerospace Telemetry Orchestrator</p>
@@ -52,21 +58,13 @@ export function TopBar({
 
         <div className="hidden md:flex items-center gap-10">
           <div className="space-y-1">
-            <div className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em]">Signal Link</div>
+            <div className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em]">Hardware Stream</div>
             <div className="flex items-center gap-3">
-              <div className="flex gap-0.5 items-end h-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div 
-                    key={i} 
-                    className={`w-1 rounded-full transition-all duration-500 ${
-                      isLive ? 'bg-cyan-500' : 'bg-slate-700'
-                    }`} 
-                    style={{ height: `${i * 25}%`, opacity: isLive ? 1 : 0.3 }}
-                  />
-                ))}
+              <div className="flex items-center justify-center w-5 h-5 rounded-md bg-slate-900 border border-white/5">
+                <Zap className={`w-3 h-3 ${isSocketConnected ? 'text-amber-400 animate-pulse' : 'text-slate-700'}`} />
               </div>
-              <span className={`text-xs font-mono font-bold tracking-widest ${isLive ? 'text-white' : 'text-slate-500'}`}>
-                {isLive ? 'ESTABLISHED' : 'SEARCHING...'}
+              <span className={`text-xs font-mono font-bold tracking-widest ${isSocketConnected ? 'text-white' : 'text-slate-500'}`}>
+                {isSocketConnected ? 'CONNECTED' : 'DISCONNECTED'}
               </span>
             </div>
           </div>
@@ -95,7 +93,7 @@ export function TopBar({
         </div>
 
         <div className="md:hidden">
-          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-cyan-500 animate-pulse' : 'bg-slate-700'}`} />
+          <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-amber-400 animate-pulse' : isLive ? 'bg-cyan-500 animate-pulse' : 'bg-slate-700'}`} />
         </div>
       </div>
     </div>
