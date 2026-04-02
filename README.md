@@ -1,8 +1,8 @@
-# ASCEND Telemetry Dashboard 🚀
+# ASCEND Telemetry Dashboard 
 
 A premium, high-fidelity telemetry streaming platform for drone and robotics data. Now with **native Raspberry Pi WebSocket support**.
 
-## 🌟 Key Features
+##  Key Features
 - **Real-Time Streaming**: Low-latency telemetry via WebSockets.
 - **Always Live**: Continuous 2Hz stream with sliding window visualization.
 - **Hardware-Link Monitoring**: Real-time connection status pulse for hardware.
@@ -10,7 +10,7 @@ A premium, high-fidelity telemetry streaming platform for drone and robotics dat
 
 ---
 
-## 🛠️ Hardware Setup (Raspberry Pi OS)
+##  Hardware Setup (Raspberry Pi OS)
 
 To stream real-time data from your Raspberry Pi (Running Raspberry Pi OS/Debian) to the dashboard:
 
@@ -71,7 +71,7 @@ sudo systemctl start telemetry.service
 
 ---
 
-## 🛰️ Relay Server Setup
+##  Relay Server Setup
 
 The relay server acts as the central hub between your Pi and the Dashboard.
 
@@ -84,7 +84,7 @@ The relay server will listen on `ws://localhost:8080`.
 
 ---
 
-## 💻 Dashboard Dashboard Setup
+##  Dashboard Dashboard Setup
 
 ### 1. Install & Start
 ```bash
@@ -98,7 +98,7 @@ npm run dev
 
 ---
 
-## 📊 Telemetry Data Format
+##  Telemetry Data Format
 The system expects JSON packets:
 ```json
 {
